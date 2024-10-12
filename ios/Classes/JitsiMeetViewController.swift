@@ -69,6 +69,24 @@ extension JitsiMeetViewController: JitsiMeetViewDelegate {
         self.eventSink(["event": "conferenceJoined", "data": data])
     }
 
+// custom events
+    func like(_ data: [AnyHashable : Any]) {
+        self.eventSink(["event": "like", "data": data])
+    }
+
+    func dislike(_ data: [AnyHashable : Any]) {
+        self.eventSink(["event": "dislike", "data": data])
+    }
+
+    func cheer(_ data: [AnyHashable : Any]) {
+        self.eventSink(["event": "cheer", "data": data])
+    }
+
+    func boo(_ data: [AnyHashable : Any]) {
+        self.eventSink(["event": "boo", "data": data])
+    }
+// end of custom events
+
     func conferenceTerminated(_ data: [AnyHashable: Any]) {
         self.eventSink(["event": "conferenceTerminated", "data": data])
     }

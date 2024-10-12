@@ -25,6 +25,13 @@ class JitsiMeetEventListener {
           String? email, String? name, String? role, String? participantId)?
       participantJoined;
 
+  // custom events
+  final Function(String? email, String? participantId)? like;
+  final Function(String? email, String? participantId)? dislike;
+  final Function(String? email, String? participantId)? cheer;
+  final Function(String? email, String? participantId)? boo;
+  // end of custom events
+
   /// Called when a participant has left the conference.
   ///
   /// [participantId] : the id of the participant that left.
@@ -95,5 +102,11 @@ class JitsiMeetEventListener {
     this.chatToggled,
     this.readyToClose,
     this.customOverflowMenuButtonPressed,
+    // custom events
+    this.like,
+    this.dislike,
+    this.cheer,
+    this.boo,
+    // end of custom events
   });
 }

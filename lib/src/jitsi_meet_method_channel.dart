@@ -218,6 +218,36 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
           _listener?.conferenceJoined?.call(data["url"]);
           break;
 
+        // custom events
+        case CustomJitsiEvents.like:
+          _listener?.like?.call(
+            data["email"],
+            data["participantId"],
+          );
+          break;
+
+        case CustomJitsiEvents.dislike:
+          _listener?.dislike?.call(
+            data["email"],
+            data["participantId"],
+          );
+          break;
+
+        case CustomJitsiEvents.cheer:
+          _listener?.cheer?.call(
+            data["email"],
+            data["participantId"],
+          );
+          break;
+
+        case CustomJitsiEvents.boo:
+          _listener?.boo?.call(
+            data["email"],
+            data["participantId"],
+          );
+          break;
+        // end of custom events
+
         case "conferenceTerminated":
           _listener?.conferenceTerminated?.call(data["url"], data["error"]);
           break;
@@ -302,4 +332,11 @@ bool parseBool(dynamic value) {
   if (value is String) return value == 'true';
   if (value is num) return value != 0;
   throw ArgumentError('Unsupported type: $value');
+}
+
+class CustomJitsiEvents {
+  static const like = 'like';
+  static const dislike = 'dislike';
+  static const cheer = 'cheer';
+  static const boo = 'boo';
 }
