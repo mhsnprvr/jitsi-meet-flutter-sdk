@@ -114,6 +114,7 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity() {
                         data
                     )
 
+
                     else -> {}
                 }
             }
