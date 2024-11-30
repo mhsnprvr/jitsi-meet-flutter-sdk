@@ -71,17 +71,14 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity() {
                 val event = BroadcastEvent(intent)
                 val data = event.data
                 when (event.type.action!!) {
-                BroadcastEvent.Type.CONFERENCE_JOINED -> eventStreamHandler.conferenceJoined(data)
-                // custom event
-                BroadcastEvent.Type.LIKE -> eventStreamHandler.like(data)
-                BroadcastEvent.Type.DISLIKE -> eventStreamHandler.dislike(data)
-                BroadcastEvent.Type.CHEER -> eventStreamHandler.cheer(data)
-                BroadcastEvent.Type.BOO -> eventStreamHandler.boo(data)
-                // end of custom event
-
-                BroadcastEvent.Type.CONFERENCE_TERMINATED -> eventStreamHandler.conferenceTerminated(
-                    data
-                )
+                    BroadcastEvent.Type.CONFERENCE_JOINED.action -> eventStreamHandler.conferenceJoined(data)
+                    BroadcastEvent.Type.CONFERENCE_TERMINATED.action -> eventStreamHandler.conferenceTerminated(
+                        data
+                    )
+                BroadcastEvent.Type.LIKE.action -> eventStreamHandler.like(data)
+                BroadcastEvent.Type.DISLIKE.action -> eventStreamHandler.dislike(data)
+                BroadcastEvent.Type.CHEER.action -> eventStreamHandler.cheer(data)
+                BroadcastEvent.Type.BOO.action -> eventStreamHandler.boo(data)
 
                     BroadcastEvent.Type.CONFERENCE_WILL_JOIN.action -> eventStreamHandler.conferenceWillJoin(
                         data
@@ -113,7 +110,6 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity() {
                     BroadcastEvent.Type.CUSTOM_OVERFLOW_MENU_BUTTON_PRESSED.action -> eventStreamHandler.customOverflowMenuButtonPressed(
                         data
                     )
-
 
                     else -> {}
                 }
