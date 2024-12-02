@@ -41,7 +41,7 @@
     <dependency>
       <groupId>org.webkit</groupId>
       <artifactId>android-jsc</artifactId>
-      <version>r250231</version>
+      <version>r174650</version>
     </dependency>
     <dependency>
       <groupId>com.facebook.fresco</groupId>
