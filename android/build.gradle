@@ -23,7 +23,9 @@ rootProject.allprojects {
             // url "D:\\\\my_projects\\\\podium_fihub\\\\jitsi_plugin\\\\android\\\\libs"
             // url "file:/../libs"
             // url "https://github.com/jitsi/jitsi-maven-repository/raw/master/releases"
-            url "D:/my_projects/podium_fihub/jitsi-meet-flutter-sdk/android/libs"
+            // url "D:/my_projects/podium_fihub/jitsi-meet-flutter-sdk/android/libs"
+            url "/Users/mohsen/Desktop/my_projects/podium/jitsi-meet-flutter-sdk/android/libs"
+
         }
         google()
         mavenCentral()
