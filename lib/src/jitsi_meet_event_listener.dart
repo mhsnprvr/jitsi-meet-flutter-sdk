@@ -85,7 +85,7 @@ class JitsiMeetEventListener {
   /// Called when a custom overflow menu button is pressed.
   ///
   /// [buttonId] : the id of the button that was pressed.
-  final Function(String buttonId)? customOverflowMenuButtonPressed;
+  final Function(String buttonId)? customButtonPressed;
 
   JitsiMeetEventListener({
     this.conferenceJoined,
@@ -101,12 +101,12 @@ class JitsiMeetEventListener {
     this.chatMessageReceived,
     this.chatToggled,
     this.readyToClose,
-    this.customOverflowMenuButtonPressed,
     // custom events
     this.like,
     this.dislike,
     this.cheer,
     this.boo,
     // end of custom events
+    this.customButtonPressed,
   });
 }

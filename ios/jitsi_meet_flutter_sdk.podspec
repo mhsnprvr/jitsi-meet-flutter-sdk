@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'jitsi_meet_flutter_sdk'
-  s.version          = '10.3.0'
+  s.version          = '11.1.1'
   s.summary          = 'Jitsi Meet Flutter SDK'
   s.description      = <<-DESC
 Jitsi Meet Flutter SDK
@@ -11,9 +11,7 @@ Jitsi Meet Flutter SDK
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  
-  s.vendored_frameworks = 'Frameworks/JitsiMeetSDK.xcframework'
-  
+  s.dependency 'JitsiMeetSDK', '11.1.1'
   s.platform = :ios, '15.1'
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES',
