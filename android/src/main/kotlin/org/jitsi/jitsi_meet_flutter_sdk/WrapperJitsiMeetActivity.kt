@@ -75,10 +75,10 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity() {
                     BroadcastEvent.Type.CONFERENCE_TERMINATED.action -> eventStreamHandler.conferenceTerminated(
                         data
                     )
-                BroadcastEvent.Type.LIKE.action -> eventStreamHandler.like(data)
-                BroadcastEvent.Type.DISLIKE.action -> eventStreamHandler.dislike(data)
-                BroadcastEvent.Type.CHEER.action -> eventStreamHandler.cheer(data)
-                BroadcastEvent.Type.BOO.action -> eventStreamHandler.boo(data)
+                // BroadcastEvent.Type.LIKE.action -> eventStreamHandler.like(data)
+                // BroadcastEvent.Type.DISLIKE.action -> eventStreamHandler.dislike(data)
+                // BroadcastEvent.Type.CHEER.action -> eventStreamHandler.cheer(data)
+                // BroadcastEvent.Type.BOO.action -> eventStreamHandler.boo(data)
 
                     BroadcastEvent.Type.CONFERENCE_WILL_JOIN.action -> eventStreamHandler.conferenceWillJoin(
                         data
@@ -107,9 +107,9 @@ class WrapperJitsiMeetActivity : JitsiMeetActivity() {
 
                     BroadcastEvent.Type.READY_TO_CLOSE.action -> eventStreamHandler.readyToClose()
 
-                    BroadcastEvent.Type.CUSTOM_BUTTON_PRESSED.action -> eventStreamHandler.customButtonPressed(
-                        data
-                    )
+                    // BroadcastEvent.Type.CUSTOM_OVERFLOW_MENU_BUTTON_PRESSED.action -> eventStreamHandler.customOverflowMenuButtonPressed(
+                    //     data
+                    // )
 
                     else -> {}
                 }
