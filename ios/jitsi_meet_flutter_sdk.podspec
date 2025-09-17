@@ -11,7 +11,9 @@ Jitsi Meet Flutter SDK
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'JitsiMeetSDK', '11.5.1'
+  s.dependency 'Giphy', '2.2.12'
+  s.dependency 'JitsiWebRTC', '~> 124.0'
+  s.vendored_frameworks = 'Frameworks/JitsiMeetSDK.xcframework', 'Frameworks/hermes.xcframework'
   s.platform = :ios, '15.1'
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES',
