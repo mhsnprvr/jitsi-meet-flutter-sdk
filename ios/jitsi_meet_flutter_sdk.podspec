@@ -1,17 +1,17 @@
 Pod::Spec.new do |s|
   s.name             = 'jitsi_meet_flutter_sdk'
-  s.version          = '11.1.1'
+  s.version          = '11.5.1'
   s.summary          = 'Jitsi Meet Flutter SDK'
   s.description      = <<-DESC
 Jitsi Meet Flutter SDK
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://jitsi.github.io/handbook/docs/dev-guide/dev-guide-flutter-sdk'
+  s.authors          = 'Jitsi Meet'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'JitsiMeetSDK', '11.1.1'
+  s.dependency 'JitsiMeetSDK', '11.5.1'
   s.platform = :ios, '15.1'
   s.pod_target_xcconfig = { 
     'DEFINES_MODULE' => 'YES',
