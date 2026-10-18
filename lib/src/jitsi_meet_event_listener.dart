@@ -87,6 +87,12 @@ class JitsiMeetEventListener {
   /// [buttonId] : the id of the button that was pressed.
   final Function(String buttonId)? customButtonPressed;
 
+  /// Called for every event of the Podium channel.
+  ///
+  /// [name] : the event name, e.g. `raisedHands`, `audioLevels`, `dominantSpeaker`.
+  /// [data] : the decoded event payload.
+  final Function(String name, Map<String, dynamic> data)? podiumEvent;
+
   JitsiMeetEventListener({
     this.conferenceJoined,
     this.conferenceTerminated,
@@ -108,5 +114,6 @@ class JitsiMeetEventListener {
     this.boo,
     // end of custom events
     this.customButtonPressed,
+    this.podiumEvent,
   });
 }

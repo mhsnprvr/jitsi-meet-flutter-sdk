@@ -131,6 +131,10 @@ extension JitsiMeetViewController: JitsiMeetViewDelegate {
         self.eventSink(["event": "participantsInfoRetrieved", "data": data])
     }
 
+    @objc func podiumEvent(_ data: [AnyHashable : Any]) {
+        self.eventSink(["event": "podiumEvent", "data": data])
+    }
+
     func customButtonPressed(_ data: [AnyHashable : Any]) {
         self.eventSink(["event": "customButtonPressed", "data": data])
     }

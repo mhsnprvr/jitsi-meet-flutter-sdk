@@ -64,6 +64,9 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         case "enterPiP":
             enterPiP(call, result: result)
             return
+        case "sendPodiumCommand":
+            sendPodiumCommand(call, result: result)
+            return
         default:
           result(FlutterMethodNotImplemented)
         }
@@ -149,6 +152,23 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let message: String = arguments["message"] as! String
         activeJitsiMeetView?.sendEndpointTextMessage(message, to)
         result("Successfully send endpoint text message \(to)")
+    }
+
+    private func sendPodiumCommand(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? [String: Any]
+        guard let name = arguments?["name"] as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "name is required", details: nil))
+            return
+        }
+        let payload = arguments?["payload"] as? String ?? "{}"
+        // Resolved at runtime so the plugin still builds against SDKs without the Podium channel.
+        let selector = NSSelectorFromString("sendPodiumCommand::")
+        guard let view = activeJitsiMeetView, view.responds(to: selector) else {
+            result(FlutterError(code: "UNSUPPORTED", message: "This Jitsi SDK has no Podium channel", details: nil))
+            return
+        }
+        view.perform(selector, with: name, with: payload)
+        result("Successfully sent podium command \(name)")
     }
 
     private func toggleScreenShare(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

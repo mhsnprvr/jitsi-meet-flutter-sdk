@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -231,6 +232,23 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
         );
   }
 
+  @override
+  Future<MethodResponse> sendPodiumCommand(
+      String name, Map<String, dynamic> data) async {
+    return await methodChannel.invokeMethod<String>('sendPodiumCommand', {
+      'name': name,
+      'payload': jsonEncode(data),
+    }).then((message) {
+      return MethodResponse(isSuccess: true, message: message);
+    }).catchError((error) {
+      return MethodResponse(
+        isSuccess: false,
+        message: error.toString(),
+        error: error,
+      );
+    });
+  }
+
   void _initialize() {
     eventChannel.receiveBroadcastStream().listen((message) {
       final data = message['data'];
@@ -339,6 +357,19 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
 
         case "customButtonPressed":
           _listener?.customButtonPressed?.call(data["id"]);
+          break;
+
+        case "podiumEvent":
+          final name = data["name"];
+          if (name is! String) break;
+          Map<String, dynamic> payload = const {};
+          try {
+            final decoded = jsonDecode(data["payload"] ?? '{}');
+            if (decoded is Map) payload = Map<String, dynamic>.from(decoded);
+          } catch (e) {
+            debugPrint("Invalid podium event payload for $name: $e");
+          }
+          _listener?.podiumEvent?.call(name, payload);
           break;
       }
     }).onError((error) {

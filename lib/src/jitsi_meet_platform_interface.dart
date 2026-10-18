@@ -101,4 +101,10 @@ abstract class JitsiMeetPlatform extends PlatformInterface {
   Future<MethodResponse> enterPiP() async {
     throw UnimplementedError('enterPiP() has not been implemented.');
   }
+
+  /// Sends a command over the Podium channel of the conference.
+  Future<MethodResponse> sendPodiumCommand(
+      String name, Map<String, dynamic> data) async {
+    throw UnimplementedError('sendPodiumCommand() has not been implemented.');
+  }
 }

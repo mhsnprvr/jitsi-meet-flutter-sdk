@@ -81,4 +81,12 @@ class JitsiMeet {
   Future<MethodResponse> enterPiP() async {
     return await JitsiMeetPlatform.instance.enterPiP();
   }
+
+  /// Sends a command over the Podium channel of the conference, e.g.
+  /// `raiseHand`, `lowerHand`, `muteParticipant`, `kickParticipant`.
+  /// Results arrive through [JitsiMeetEventListener.podiumEvent].
+  Future<MethodResponse> sendPodiumCommand(String name,
+      [Map<String, dynamic> data = const {}]) async {
+    return await JitsiMeetPlatform.instance.sendPodiumCommand(name, data);
+  }
 }

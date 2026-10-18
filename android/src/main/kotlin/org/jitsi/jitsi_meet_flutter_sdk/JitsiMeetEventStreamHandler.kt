@@ -94,6 +94,10 @@ class JitsiMeetEventStreamHandler private constructor() : EventChannel.StreamHan
         eventSink?.success(mapOf("event" to "customButtonPressed", "data" to data))
     }
 
+    fun podiumEvent(data: MutableMap<String, Any>?) {
+        eventSink?.success(mapOf("event" to "podiumEvent", "data" to data))
+    }
+
     fun onBroadcastEvent(event: BroadcastEvent) {
         val data = event.data
         when (event.type) {
@@ -110,6 +114,7 @@ class JitsiMeetEventStreamHandler private constructor() : EventChannel.StreamHan
             BroadcastEvent.Type.CHAT_TOGGLED -> chatToggled(data)
             BroadcastEvent.Type.PARTICIPANTS_INFO_RETRIEVED -> participantsInfoRetrieved(data)
             BroadcastEvent.Type.READY_TO_CLOSE -> readyToClose()
+            BroadcastEvent.Type.PODIUM_EVENT -> podiumEvent(data)
             else -> {}
         }
     }

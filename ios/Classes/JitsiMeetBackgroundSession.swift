@@ -86,6 +86,10 @@ extension JitsiMeetBackgroundSession: JitsiMeetViewDelegate {
         eventSink(["event": "chatToggled", "data": data])
     }
 
+    @objc func podiumEvent(_ data: [AnyHashable : Any]) {
+        eventSink(["event": "podiumEvent", "data": data])
+    }
+
     func customButtonPressed(_ data: [AnyHashable : Any]) {
         eventSink(["event": "customButtonPressed", "data": data])
     }

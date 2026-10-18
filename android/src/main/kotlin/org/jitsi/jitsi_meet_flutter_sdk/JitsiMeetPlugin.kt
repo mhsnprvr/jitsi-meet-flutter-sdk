@@ -64,6 +64,7 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "closeChat" -> closeChat(call, result)
       "retrieveParticipantsInfo" -> retrieveParticipantsInfo(call, result)
       "enterPiP" -> enterPiP(call, result)
+      "sendPodiumCommand" -> sendPodiumCommand(call, result)
       else -> result.notImplemented()
     }
   }
@@ -249,6 +250,18 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
     val retrieveParticipantsInfoIntent: Intent = Intent("org.jitsi.meet.RETRIEVE_PARTICIPANTS_INFO");
     LocalBroadcastManager.getInstance(activity!!.applicationContext).sendBroadcast(retrieveParticipantsInfoIntent)
     result.success("Successfully retrieved participants info")
+  }
+
+  private fun sendPodiumCommand(call: MethodCall, result: Result) {
+    val name = call.argument<String>("name")
+    if (name == null) {
+      result.error("INVALID_ARGUMENT", "name is required", null)
+      return
+    }
+    val payload = call.argument<String>("payload") ?: "{}"
+    val intent = BroadcastIntentHelper.buildPodiumCommandIntent(name, payload)
+    LocalBroadcastManager.getInstance(activity!!.applicationContext).sendBroadcast(intent)
+    result.success("Successfully sent podium command $name")
   }
 
   private fun enterPiP(call: MethodCall, result: Result) {
