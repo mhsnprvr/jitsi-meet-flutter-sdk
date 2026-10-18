@@ -2,6 +2,7 @@ package org.jitsi.jitsi_meet_flutter_sdk
 
 import android.app.Activity
 import androidx.annotation.NonNull
+import androidx.fragment.app.FragmentActivity
 import android.content.Intent
 import android.os.Bundle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -14,6 +15,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry
 import org.jitsi.meet.sdk.BroadcastIntentHelper
 import org.jitsi.meet.sdk.JitsiMeetConferenceOptions
 import org.jitsi.meet.sdk.JitsiMeetUserInfo
@@ -27,6 +29,18 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   private lateinit var eventChannel: EventChannel
   private val eventStreamHandler = JitsiMeetEventStreamHandler.instance
   private var activity: Activity? = null
+  private var activityBinding: ActivityPluginBinding? = null
+  private var backgroundSession: JitsiMeetBackgroundSession? = null
+
+  private val requestPermissionsResultListener = PluginRegistry.RequestPermissionsResultListener { requestCode, permissions, grantResults ->
+    backgroundSession?.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    false
+  }
+
+  private val activityResultListener = PluginRegistry.ActivityResultListener { requestCode, resultCode, data ->
+    backgroundSession?.onActivityResult(requestCode, resultCode, data)
+    false
+  }
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     methodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "jitsi_meet_flutter_sdk")
@@ -59,6 +73,10 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   override fun onDetachedFromActivity() {
+    backgroundSession?.dispose()
+    activityBinding?.removeRequestPermissionsResultListener(requestPermissionsResultListener)
+    activityBinding?.removeActivityResultListener(activityResultListener)
+    activityBinding = null
     this.activity = null
   }
 
@@ -68,6 +86,9 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
     this.activity = binding.activity
+    activityBinding = binding
+    binding.addRequestPermissionsResultListener(requestPermissionsResultListener)
+    binding.addActivityResultListener(activityResultListener)
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -146,7 +167,24 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       build()
     }
 
-    WrapperJitsiMeetActivity.launch(activity!!, options)
+    if (call.argument<Boolean>("runInBackground") != false) {
+      val hostActivity = activity
+      if (hostActivity !is FragmentActivity || hostActivity !is JitsiMeetActivityInterface) {
+        result.error(
+          "HOST_ACTIVITY_UNSUPPORTED",
+          "runInBackground requires the host activity to extend FlutterFragmentActivity " +
+            "and implement JitsiMeetActivityInterface",
+          null
+        )
+        return
+      }
+      val session = backgroundSession
+        ?: JitsiMeetBackgroundSession(hostActivity) { backgroundSession = null }
+      backgroundSession = session
+      session.join(options)
+    } else {
+      WrapperJitsiMeetActivity.launch(activity!!, options)
+    }
     result.success("Successfully joined meeting $room")
   }
 

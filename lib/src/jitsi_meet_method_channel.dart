@@ -46,7 +46,8 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
         'avatar': options.userInfo?.avatar,
       },
       'featureFlags': options.featureFlags,
-      'configOverrides': options.configOverrides
+      'configOverrides': options.configOverrides,
+      'runInBackground': options.runInBackground,
     };
     return await methodChannel
         .invokeMethod<String>('join', parsedOptions)

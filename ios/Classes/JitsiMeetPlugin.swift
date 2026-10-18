@@ -5,7 +5,12 @@ import JitsiMeetSDK
 public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     var flutterViewController: UIViewController
     var jitsiMeetViewController: JitsiMeetViewController?
+    var backgroundSession: JitsiMeetBackgroundSession?
     var eventSink: FlutterEventSink?
+
+    var activeJitsiMeetView: JitsiMeetView? {
+        backgroundSession?.jitsiMeetView ?? jitsiMeetViewController?.jitsiMeetView
+    }
 
     init(flutterViewController: UIViewController) {
         self.flutterViewController = flutterViewController
@@ -104,28 +109,37 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             }
         }
 
-        jitsiMeetViewController = JitsiMeetViewController.init(options: options, eventSink: eventSink!)
-        jitsiMeetViewController!.modalPresentationStyle = .overFullScreen
-        flutterViewController.present(jitsiMeetViewController!, animated: true)
+        if (arguments["runInBackground"] as? Bool) ?? true {
+            let session = backgroundSession ?? JitsiMeetBackgroundSession(eventSink: eventSink!) { [weak self] in
+                self?.backgroundSession = nil
+            }
+            backgroundSession = session
+            let container: UIView = flutterViewController.view.window ?? flutterViewController.view
+            session.join(options, in: container)
+        } else {
+            jitsiMeetViewController = JitsiMeetViewController.init(options: options, eventSink: eventSink!)
+            jitsiMeetViewController!.modalPresentationStyle = .overFullScreen
+            flutterViewController.present(jitsiMeetViewController!, animated: true)
+        }
         result("Successfully joined meeting \(room)")
     }
 
     private func hangUp(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        jitsiMeetViewController?.jitsiMeetView?.hangUp()
+        activeJitsiMeetView?.hangUp()
         result("Successfully hung up")
     }
 
     private func setAudioMuted(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! [String: Any]
         let muted = arguments["muted"] as! Bool
-        jitsiMeetViewController?.jitsiMeetView?.setAudioMuted(muted)
+        activeJitsiMeetView?.setAudioMuted(muted)
         result("Successfully set audio \(muted)")
     }
 
     private func setVideoMuted(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! [String: Any]
         let muted = arguments["muted"] as! Bool
-        jitsiMeetViewController?.jitsiMeetView?.setVideoMuted(muted)
+        activeJitsiMeetView?.setVideoMuted(muted)
         result("Successfully set video \(muted)")
     }
 
@@ -133,21 +147,21 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let arguments = call.arguments as! [String: Any]
         let to = arguments["to"] as? String
         let message: String = arguments["message"] as! String
-        jitsiMeetViewController?.jitsiMeetView?.sendEndpointTextMessage(message, to)
+        activeJitsiMeetView?.sendEndpointTextMessage(message, to)
         result("Successfully send endpoint text message \(to)")
     }
 
     private func toggleScreenShare(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! [String: Any]
         let enabled = arguments["enabled"] as! Bool
-        jitsiMeetViewController?.jitsiMeetView?.toggleScreenShare(enabled)
+        activeJitsiMeetView?.toggleScreenShare(enabled)
         result("Successfully toggled screen share \(enabled)")
     }
 
     private func openChat(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! [String: Any]
         let to = arguments["to"] as? String
-        jitsiMeetViewController?.jitsiMeetView?.openChat(to)
+        activeJitsiMeetView?.openChat(to)
         result("Successfully opened chat \(to)")
     }
 
@@ -155,17 +169,17 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let arguments = call.arguments as! [String: Any]
         let to = arguments["to"] as? String
         let message: String = arguments["message"] as! String
-        jitsiMeetViewController?.jitsiMeetView?.sendChatMessage(message, to)
+        activeJitsiMeetView?.sendChatMessage(message, to)
         result("Successfully sent chat message \(to)")
     }
 
     private func closeChat(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        jitsiMeetViewController?.jitsiMeetView?.closeChat()
+        activeJitsiMeetView?.closeChat()
         result("Successfully closed chat")
     }
 
     private func retrieveParticipantsInfo(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        jitsiMeetViewController?.jitsiMeetView?.retrieveParticipantsInfo({ (data:[Any]?) in self.eventSink!(["event": "participantsInfoRetrieved", "data": data])})
+        activeJitsiMeetView?.retrieveParticipantsInfo({ (data:[Any]?) in self.eventSink!(["event": "participantsInfoRetrieved", "data": data])})
         result("Successfully retrieved participants info")
     }
 

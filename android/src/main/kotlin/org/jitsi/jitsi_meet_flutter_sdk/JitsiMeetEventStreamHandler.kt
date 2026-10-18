@@ -1,6 +1,7 @@
 package org.jitsi.jitsi_meet_flutter_sdk
 
 import io.flutter.plugin.common.EventChannel
+import org.jitsi.meet.sdk.BroadcastEvent
 import java.io.Serializable
 
 class JitsiMeetEventStreamHandler private constructor() : EventChannel.StreamHandler {
@@ -91,5 +92,25 @@ class JitsiMeetEventStreamHandler private constructor() : EventChannel.StreamHan
 
     fun customButtonPressed(data: MutableMap<String, Any>?) {
         eventSink?.success(mapOf("event" to "customButtonPressed", "data" to data))
+    }
+
+    fun onBroadcastEvent(event: BroadcastEvent) {
+        val data = event.data
+        when (event.type) {
+            BroadcastEvent.Type.CONFERENCE_JOINED -> conferenceJoined(data)
+            BroadcastEvent.Type.CONFERENCE_TERMINATED -> conferenceTerminated(data)
+            BroadcastEvent.Type.CONFERENCE_WILL_JOIN -> conferenceWillJoin(data)
+            BroadcastEvent.Type.PARTICIPANT_JOINED -> participantJoined(data)
+            BroadcastEvent.Type.PARTICIPANT_LEFT -> participantLeft(data)
+            BroadcastEvent.Type.AUDIO_MUTED_CHANGED -> audioMutedChanged(data)
+            BroadcastEvent.Type.VIDEO_MUTED_CHANGED -> videoMutedChanged(data)
+            BroadcastEvent.Type.ENDPOINT_TEXT_MESSAGE_RECEIVED -> endpointTextMessageReceived(data)
+            BroadcastEvent.Type.SCREEN_SHARE_TOGGLED -> screenShareToggled(data)
+            BroadcastEvent.Type.CHAT_MESSAGE_RECEIVED -> chatMessageReceived(data)
+            BroadcastEvent.Type.CHAT_TOGGLED -> chatToggled(data)
+            BroadcastEvent.Type.PARTICIPANTS_INFO_RETRIEVED -> participantsInfoRetrieved(data)
+            BroadcastEvent.Type.READY_TO_CLOSE -> readyToClose()
+            else -> {}
+        }
     }
 }

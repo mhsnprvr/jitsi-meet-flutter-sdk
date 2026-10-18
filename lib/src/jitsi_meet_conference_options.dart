@@ -20,11 +20,20 @@ class JitsiMeetConferenceOptions {
   /// Information about the local user. It will be used in absence of a token.
   final JitsiMeetUserInfo? userInfo;
 
+  /// Runs the conference without presenting any Jitsi UI (the default). The
+  /// conference is controlled only through the [JitsiMeet] API and its events.
+  /// Set to `false` to present the regular Jitsi meeting screen instead.
+  ///
+  /// On Android the host activity must extend `FlutterFragmentActivity` and
+  /// implement `JitsiMeetActivityInterface`.
+  final bool runInBackground;
+
   JitsiMeetConferenceOptions(
       {this.serverURL,
       required this.room,
       this.token,
       this.configOverrides,
       this.featureFlags,
-      this.userInfo});
+      this.userInfo,
+      this.runInBackground = true});
 }
