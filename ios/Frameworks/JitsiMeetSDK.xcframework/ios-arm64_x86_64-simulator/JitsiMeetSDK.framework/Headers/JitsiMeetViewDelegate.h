@@ -144,4 +144,11 @@
  */
 - (void)recordingStatusChanged:(NSDictionary *)data;
 
+/**
+ * Called for every event of the Podium channel.
+ *
+ * The `data` dictionary contains `name` and `payload` (a JSON string) keys.
+ */
+- (void)podiumEvent:(NSDictionary *)data;
+
 @end

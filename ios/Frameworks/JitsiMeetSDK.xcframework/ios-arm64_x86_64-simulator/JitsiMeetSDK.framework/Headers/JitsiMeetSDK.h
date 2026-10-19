@@ -24,3 +24,4 @@
 #import <JitsiMeetSDK/InfoPlistUtil.h>
 #import <JitsiMeetSDK/JMCallKitListener.h>
 #import <JitsiMeetSDK/JMCallKitProxy.h>
+#import <JitsiMeetSDK/PodiumStageView.h>

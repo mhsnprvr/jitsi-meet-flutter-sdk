@@ -67,6 +67,9 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         case "sendPodiumCommand":
             sendPodiumCommand(call, result: result)
             return
+        case "setStage":
+            setStage(call, result: result)
+            return
         default:
           result(FlutterMethodNotImplemented)
         }
@@ -161,21 +164,37 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             return
         }
         let payload = arguments?["payload"] as? String ?? "{}"
-        // Resolved at runtime so the plugin still builds against SDKs without the Podium channel.
-        let selector = NSSelectorFromString("sendPodiumCommand::")
-        guard let view = activeJitsiMeetView, view.responds(to: selector) else {
-            result(FlutterError(code: "UNSUPPORTED", message: "This Jitsi SDK has no Podium channel", details: nil))
-            return
-        }
-        view.perform(selector, with: name, with: payload)
+        activeJitsiMeetView?.sendPodiumCommand(name, payload)
         result("Successfully sent podium command \(name)")
     }
 
     private func toggleScreenShare(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as! [String: Any]
         let enabled = arguments["enabled"] as! Bool
+        // iOS can only capture the screen through the broadcast extension, which the SDK starts
+        // sharing from once the user starts the broadcast in the system picker.
+        if enabled, let session = backgroundSession {
+            session.showScreenSharePicker()
+            result("Opened the screen share picker")
+            return
+        }
         activeJitsiMeetView?.toggleScreenShare(enabled)
         result("Successfully toggled screen share \(enabled)")
+    }
+
+    private func setStage(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? [String: Any] ?? [:]
+        backgroundSession?.setStage(
+            visible: arguments["visible"] as? Bool ?? false,
+            left: arguments["left"] as? Int ?? 0,
+            top: arguments["top"] as? Int ?? 0,
+            width: arguments["width"] as? Int ?? 0,
+            height: arguments["height"] as? Int ?? 0,
+            pcId: arguments["pcId"] as? Int ?? -1,
+            trackId: arguments["trackId"] as? String,
+            flutterView: flutterViewController.view
+        )
+        result("Stage updated")
     }
 
     private func openChat(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

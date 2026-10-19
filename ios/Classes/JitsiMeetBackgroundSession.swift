@@ -1,4 +1,5 @@
 import Flutter
+import ReplayKit
 import UIKit
 import JitsiMeetSDK
 
@@ -6,6 +7,8 @@ import JitsiMeetSDK
 /// behind the app's content so the conference stays alive while the app is used normally.
 class JitsiMeetBackgroundSession: NSObject {
     private(set) var jitsiMeetView: JitsiMeetView?
+    private var stageView: PodiumStageView?
+    private var broadcastPicker: RPSystemBroadcastPickerView?
     private let eventSink: FlutterEventSink
     private let onClosed: () -> Void
 
@@ -32,7 +35,69 @@ class JitsiMeetBackgroundSession: NSObject {
         return view
     }
 
+    /// Places a remote video track (a screen share) over the Flutter UI. `left`/`top`/`width`/`height`
+    /// are physical pixels relative to `flutterView`. A nil `trackId` clears the stage.
+    func setStage(visible: Bool, left: Int, top: Int, width: Int, height: Int,
+                  pcId: Int, trackId: String?, flutterView: UIView) {
+        guard let container = jitsiMeetView?.superview else { return }
+        let stage = stageView ?? {
+            let view = PodiumStageView(frame: .zero)
+            view.isHidden = true
+            view.isUserInteractionEnabled = false
+            view.onVideoSizeChanged = { [weak self] size in
+                self?.eventSink([
+                    "event": "podiumEvent",
+                    "data": [
+                        "name": "stageVideoSize",
+                        "payload": "{\"width\":\(Int(size.width)),\"height\":\(Int(size.height))}"
+                    ]
+                ])
+            }
+            container.addSubview(view)
+            stageView = view
+            return view
+        }()
+        stage.setTrack(pcId, trackId: trackId)
+        guard visible, trackId != nil, width > 0, height > 0 else {
+            stage.isHidden = true
+            return
+        }
+        let scale = flutterView.window?.screen.scale ?? UIScreen.main.scale
+        let rect = CGRect(
+            x: CGFloat(left) / scale,
+            y: CGFloat(top) / scale,
+            width: CGFloat(width) / scale,
+            height: CGFloat(height) / scale
+        )
+        stage.frame = flutterView.convert(rect, to: container)
+        container.bringSubviewToFront(stage)
+        stage.isHidden = false
+    }
+
+    /// Opens the system picker for the app's broadcast upload extension. Once the user starts the
+    /// broadcast, the SDK picks it up and starts sharing in the conference.
+    func showScreenSharePicker() {
+        guard let container = jitsiMeetView?.superview else { return }
+        let picker = broadcastPicker ?? {
+            let view = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+            view.preferredExtension = Bundle.main.object(forInfoDictionaryKey: "RTCScreenSharingExtension") as? String
+            view.showsMicrophoneButton = false
+            view.alpha = 0.01
+            view.isUserInteractionEnabled = false
+            container.insertSubview(view, at: 0)
+            broadcastPicker = view
+            return view
+        }()
+        let button = picker.subviews.compactMap { $0 as? UIButton }.first
+        button?.sendActions(for: .touchUpInside)
+    }
+
     func dispose() {
+        stageView?.releaseTrack()
+        stageView?.removeFromSuperview()
+        stageView = nil
+        broadcastPicker?.removeFromSuperview()
+        broadcastPicker = nil
         guard let view = jitsiMeetView else { return }
         jitsiMeetView = nil
         view.delegate = nil

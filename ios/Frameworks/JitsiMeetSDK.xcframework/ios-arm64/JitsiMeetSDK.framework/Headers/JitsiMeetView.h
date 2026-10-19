@@ -58,4 +58,5 @@ typedef NS_ENUM(NSInteger, RecordingMode) {
 - (void)stopRecording:(RecordingMode)mode :(BOOL)transcription;
 - (void)overwriteConfig:(NSDictionary * _Nonnull)config;
 - (void)sendCameraFacingModeMessage:(NSString * _Nonnull)to :(NSString * _Nullable)facingMode;
+- (void)sendPodiumCommand:(NSString * _Nonnull)name :(NSString * _Nullable)payload;
 @end

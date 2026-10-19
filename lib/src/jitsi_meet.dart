@@ -94,7 +94,7 @@ class JitsiMeet {
   /// native window over the app, at [left]/[top]/[width]/[height] physical
   /// pixels relative to the Flutter view. Native views can't be drawn over by
   /// Flutter, so hide the stage while sheets or dialogs are open.
-  /// Pass a null [trackId] to clear it. Android only for now.
+  /// Pass a null [trackId] to clear it.
   Future<MethodResponse> setStage({
     required bool visible,
     int left = 0,

@@ -7,5 +7,4 @@ framework module JitsiMeetSDK {
 
 module JitsiMeetSDK.Swift {
   header "JitsiMeetSDK-Swift.h"
-  requires objc
 }
