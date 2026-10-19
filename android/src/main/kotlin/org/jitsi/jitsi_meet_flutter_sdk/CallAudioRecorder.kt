@@ -19,8 +19,10 @@ import java.util.concurrent.TimeUnit
  * [AacChunks.FILE_PREFIX]NNNNN.aac, so every finished chunk is playable on its own and the chunks
  * join back into one gapless stream (see [AacChunks.join]).
  *
- * The playout stream drives the timeline (it runs continuously while in a conference, as silence
- * when nobody talks); microphone audio is mixed into it as it arrives.
+ * The playout stream drives the timeline (it runs continuously once WebRTC has a media
+ * connection, as silence when nobody talks); microphone audio is mixed into it as it arrives.
+ * Before that connection exists, e.g. a muted host alone in the room, there is no playout, so
+ * silence is written by the wall clock instead.
  */
 object CallAudioRecorder {
     private const val TAG = "CallAudioRecorder"
@@ -28,6 +30,10 @@ object CallAudioRecorder {
     private const val BIT_RATE = 96_000
     private const val QUEUE_CHUNKS = 500 // 5 s of 10 ms chunks
     private const val MAX_MIC_BACKLOG_MS = 200
+    private const val POLL_MS = 100L
+
+    /** How long playout may be missing before the wall clock takes over the timeline. */
+    private const val PLAYOUT_TIMEOUT_MS = 300L
 
     /** Whether the local participant is unmuted; WebRTC keeps capturing while muted. */
     @Volatile
@@ -123,11 +129,26 @@ object CallAudioRecorder {
         private var payload = ByteArray(2048)
 
         private fun run() {
+            var lastPlayoutNs = System.nanoTime()
+            var timelineNs = lastPlayoutNs
             try {
                 while (running || playout.isNotEmpty()) {
-                    val chunk = playout.poll(100, TimeUnit.MILLISECONDS) ?: continue
+                    val chunk = playout.poll(POLL_MS, TimeUnit.MILLISECONDS)
+                    val now = System.nanoTime()
+                    val samples = if (chunk != null) {
+                        lastPlayoutNs = now
+                        timelineNs = now
+                        resample(chunk.samples, chunk.sampleRate, SAMPLE_RATE)
+                    } else {
+                        if (!running || now - lastPlayoutNs < PLAYOUT_TIMEOUT_MS * 1_000_000) {
+                            continue
+                        }
+                        val count = ((now - timelineNs) * SAMPLE_RATE / 1_000_000_000).toInt()
+                        timelineNs += count * 1_000_000_000L / SAMPLE_RATE
+                        ShortArray(count)
+                    }
+                    if (samples.isEmpty()) continue
                     if (codec == null) open()
-                    val samples = resample(chunk.samples, chunk.sampleRate, SAMPLE_RATE)
                     mixMic(samples)
                     encode(samples, endOfStream = false)
                 }

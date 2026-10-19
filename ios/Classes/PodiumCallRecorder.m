@@ -16,6 +16,8 @@ static const UInt32 kMixChunkFrames = 4096;
 static const UInt32 kPcmRingFrames = 48000 * 4;  // 4 s between the IO thread and the encoder
 static const UInt32 kEncodeInputFrames = 4096;
 static const OSStatus kNeedMoreInput = 'more';
+/// How long playout may be missing before the wall clock takes over the timeline.
+static const uint64_t kPlayoutTimeoutNs = 300 * NSEC_PER_MSEC;
 
 static const int kAdtsSampleRates[] = {
     96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350
@@ -29,13 +31,20 @@ static UInt32 gMicRead = 0;
 static UInt32 gMicCount = 0;
 static int16_t gMix[kMixChunkFrames];
 
-// Single producer (IO thread) / single consumer (encoder queue) PCM ring.
+// Single consumer (encoder queue) PCM ring. Producers (the IO thread, or the encoder queue
+// writing silence) push only while holding `gLock`.
 static int16_t gPcmRing[kPcmRingFrames];
 static _Atomic uint64_t gPcmWritten = 0;
 static _Atomic uint64_t gPcmRead = 0;
 
 static atomic_bool gActive = false;
 static atomic_bool gMicEnabled = false;
+
+// Playout only runs once WebRTC has a media connection, so a muted host alone in the room has
+// none; the encoder queue then writes silence by the wall clock instead.
+static _Atomic uint64_t gLastPlayoutNs = 0;
+static uint64_t gSilenceNs = 0; // Timeline written as silence, only touched on gQueue.
+static int16_t gSilence[kMixChunkFrames];
 
 /// Encoder state, only touched on `gQueue` (and by start/stop around it).
 typedef struct {
@@ -126,9 +135,8 @@ static void PushPcm(const int16_t *samples, UInt32 frames) {
     atomic_store_explicit(&gPcmWritten, written + n, memory_order_release);
 }
 
-void PodiumCallRecorderAppendPlayout(const int16_t *samples, uint32_t frames) {
-    if (!atomic_load_explicit(&gActive, memory_order_relaxed)) return;
-    if (!os_unfair_lock_trylock(&gLock)) return;
+/// Mixes the microphone into [samples] and queues them for encoding. Call with `gLock` held.
+static void MixAndPush(const int16_t *samples, uint32_t frames) {
     // Keep the microphone close to the playout clock if the two drift apart.
     if (gMicCount > kMaxMicBacklogFrames) {
         UInt32 drop = gMicCount - kMaxMicBacklogFrames;
@@ -149,6 +157,36 @@ void PodiumCallRecorderAppendPlayout(const int16_t *samples, uint32_t frames) {
         }
         PushPcm(gMix, n);
         offset += n;
+    }
+}
+
+void PodiumCallRecorderAppendPlayout(const int16_t *samples, uint32_t frames) {
+    if (!atomic_load_explicit(&gActive, memory_order_relaxed)) return;
+    atomic_store_explicit(&gLastPlayoutNs, clock_gettime_nsec_np(CLOCK_UPTIME_RAW),
+                          memory_order_relaxed);
+    if (!os_unfair_lock_trylock(&gLock)) return;
+    MixAndPush(samples, frames);
+    os_unfair_lock_unlock(&gLock);
+}
+
+/// Runs on gQueue. Writes silence for the time since playout stopped, if it has.
+static void FillSilenceWithoutPlayout(void) {
+    if (!atomic_load_explicit(&gActive, memory_order_relaxed)) return;
+    uint64_t now = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+    uint64_t last = atomic_load_explicit(&gLastPlayoutNs, memory_order_relaxed);
+    if (now - last < kPlayoutTimeoutNs) {
+        gSilenceNs = last;
+        return;
+    }
+    if (gSilenceNs < last) gSilenceNs = last;
+    uint64_t frames = (now - gSilenceNs) * (uint64_t)PodiumAudioSampleRate / NSEC_PER_SEC;
+    if (frames == 0) return;
+    gSilenceNs += frames * NSEC_PER_SEC / (uint64_t)PodiumAudioSampleRate;
+    os_unfair_lock_lock(&gLock);
+    while (frames > 0) {
+        uint32_t n = (uint32_t)MIN(frames, (uint64_t)kMixChunkFrames);
+        MixAndPush(gSilence, n);
+        frames -= n;
     }
     os_unfair_lock_unlock(&gLock);
 }
@@ -299,10 +337,16 @@ static void Encode(Encoder *encoder) {
     atomic_store(&gPcmWritten, 0);
     atomic_store(&gPcmRead, 0);
     os_unfair_lock_unlock(&gLock);
+    uint64_t startNs = clock_gettime_nsec_np(CLOCK_UPTIME_RAW);
+    atomic_store(&gLastPlayoutNs, startNs);
+    dispatch_sync(gQueue, ^{ gSilenceNs = startNs; });
 
     gTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, gQueue);
     dispatch_source_set_timer(gTimer, dispatch_time(DISPATCH_TIME_NOW, 0), 20 * NSEC_PER_MSEC, 5 * NSEC_PER_MSEC);
-    dispatch_source_set_event_handler(gTimer, ^{ Encode(&gEncoder); });
+    dispatch_source_set_event_handler(gTimer, ^{
+        FillSilenceWithoutPlayout();
+        Encode(&gEncoder);
+    });
     dispatch_resume(gTimer);
     atomic_store(&gActive, true);
     return YES;
