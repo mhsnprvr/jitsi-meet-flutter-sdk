@@ -436,7 +436,7 @@
 		</data>
 		<key>Headers/JitsiMeetSDK.h</key>
 		<data>
-		+IU2M9zb9QYa38p5eH+t5QDSfG0=
+		91KRp0PXGMqW+J4a77bQowsA2rg=
 		</data>
 		<key>Headers/JitsiMeetUserInfo.h</key>
 		<data>
@@ -453,6 +453,10 @@
 		<key>Headers/PodiumStageView.h</key>
 		<data>
 		i3fsejgeHXaXYLrwUXFRuE6VgU8=
+		</data>
+		<key>Headers/PodiumVideoTap.h</key>
+		<data>
+		XUo3cywtUUpWPL7Ime5u6sY5fQ8=
 		</data>
 		<key>Info.plist</key>
 		<data>
@@ -772,7 +776,7 @@
 		</data>
 		<key>main.jsbundle</key>
 		<data>
-		+cU6mEQS5iJNEWzwusUjFcczoug=
+		V7LIms9ptf2cRwTQ8Jjb+PJ5VVk=
 		</data>
 		<key>noAudioSignal.mp3</key>
 		<data>
@@ -1461,7 +1465,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			PWSPH8wdjYvUkJ68Pp8x2QrEjE7A+Sguc/ZU4q9/EGY=
+			RUE3T+NAzWS71XwO2snz6OgSD38ABHiAViz8UWxCYOY=
 			</data>
 		</dict>
 		<key>Headers/JitsiMeetUserInfo.h</key>
@@ -1490,6 +1494,13 @@
 			<key>hash2</key>
 			<data>
 			18Hhu0DgvnneqxEnoNLWm9xnJuNmK042+2V/yoIeSF0=
+			</data>
+		</dict>
+		<key>Headers/PodiumVideoTap.h</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			UEh3nVBKDca6onHkzDyTPhYJPWUBbENcx3imk0Zm+DA=
 			</data>
 		</dict>
 		<key>Modules/JitsiMeetSDK.swiftmodule/arm64-apple-ios-simulator.abi.json</key>
@@ -2042,7 +2053,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			4OjNqNnB9cZq5YOgAiEhN1ZBMu+PrF85QIBSXza8xc0=
+			RGE+zkBUqCTUTUADAvz8l3oPPS9LOTK6J18THLhgQoY=
 			</data>
 		</dict>
 		<key>noAudioSignal.mp3</key>

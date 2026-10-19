@@ -74,6 +74,14 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         CallAudioRecorder.micEnabled = call.argument<Boolean>("enabled") ?: false
         result.success(null)
       }
+      "joinAudioChunks" -> joinAudioChunks(call, result)
+      "startScreenCapture" -> startScreenCapture(call, result)
+      "stopScreenCapture" -> stopScreenCapture(result)
+      "encodeScreenClip" -> encodeScreenClip(call, result)
+      "freeDiskBytes" -> {
+        val path = call.argument<String>("path") ?: ""
+        result.success(try { android.os.StatFs(path).availableBytes } catch (e: IllegalArgumentException) { -1L })
+      }
       else -> result.notImplemented()
     }
   }
@@ -287,23 +295,103 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   }
 
   private fun startCallRecording(call: MethodCall, result: Result) {
-    val path = call.argument<String>("path")
-    if (path == null) {
-      result.error("INVALID_ARGUMENT", "path is required", null)
+    val dir = call.argument<String>("dir")
+    if (dir == null) {
+      result.error("INVALID_ARGUMENT", "dir is required", null)
       return
     }
     try {
-      CallAudioRecorder.start(path)
-      result.success(path)
+      CallAudioRecorder.start(dir, call.argument<Int>("chunkSeconds") ?: 5)
+      result.success(dir)
     } catch (e: Exception) {
       result.error("RECORDING_FAILED", e.message, null)
     }
   }
 
   private fun stopCallRecording(result: Result) {
+    inBackground(result) {
+      CallAudioRecorder.stop()?.let {
+        mapOf("dir" to it.dir, "chunks" to it.chunks, "durationMs" to it.durationMs)
+      }
+    }
+  }
+
+  private fun joinAudioChunks(call: MethodCall, result: Result) {
+    val dir = call.argument<String>("dir")
+    val outPath = call.argument<String>("outPath")
+    if (dir == null || outPath == null) {
+      result.error("INVALID_ARGUMENT", "dir and outPath are required", null)
+      return
+    }
+    inBackground(result) { AacChunks.join(java.io.File(dir), outPath) }
+  }
+
+  private fun startScreenCapture(call: MethodCall, result: Result) {
+    val trackId = call.argument<String>("trackId")
+    val dir = call.argument<String>("dir")
+    if (trackId == null || dir == null) {
+      result.error("INVALID_ARGUMENT", "trackId and dir are required", null)
+      return
+    }
+    try {
+      result.success(ScreenFrameRecorder.start(call.argument<Int>("pcId") ?: -1, trackId, dir))
+    } catch (e: Exception) {
+      result.error("SCREEN_CAPTURE_FAILED", e.message, null)
+    }
+  }
+
+  private fun stopScreenCapture(result: Result) {
+    val finish = ScreenFrameRecorder.detach()
+    if (finish == null) {
+      result.success(null)
+      return
+    }
+    inBackground(result) {
+      finish()?.let {
+        mapOf(
+          "frames" to it.frames,
+          "width" to it.width,
+          "height" to it.height,
+          "durationMs" to it.durationMs
+        )
+      }
+    }
+  }
+
+  private fun encodeScreenClip(call: MethodCall, result: Result) {
+    val dir = call.argument<String>("dir")
+    val outPath = call.argument<String>("outPath")
+    val endMs = call.argument<Number>("endMs")?.toLong()
+    if (dir == null || outPath == null || endMs == null) {
+      result.error("INVALID_ARGUMENT", "dir, outPath and endMs are required", null)
+      return
+    }
+    val main = Handler(Looper.getMainLooper())
+    inBackground(result) {
+      val clip = ScreenClipEncoder.encode(java.io.File(dir), outPath, endMs) { done, total ->
+        if (done == total || done % 10 == 0) {
+          main.post {
+            methodChannel.invokeMethod(
+              "screenClipProgress",
+              mapOf("outPath" to outPath, "done" to done, "total" to total)
+            )
+          }
+        }
+      }
+      mapOf("width" to clip.width, "height" to clip.height, "durationMs" to clip.durationMs)
+    }
+  }
+
+  /** Runs [work] on a background thread and reports its value, or its exception, on the main thread. */
+  private fun inBackground(result: Result, work: () -> Any?) {
+    val main = Handler(Looper.getMainLooper())
     Thread {
-      val path = CallAudioRecorder.stop()
-      Handler(Looper.getMainLooper()).post { result.success(path) }
+      try {
+        val value = work()
+        main.post { result.success(value) }
+      } catch (e: Exception) {
+        main.post { result.error("FAILED", e.message ?: e.toString(), null) }
+      }
     }.start()
   }
 

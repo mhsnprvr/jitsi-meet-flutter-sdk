@@ -3,7 +3,6 @@ package org.jitsi.jitsi_meet_flutter_sdk
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
-import android.media.MediaMuxer
 import android.util.Log
 import org.webrtc.audio.PodiumAudioTap
 import java.io.File
@@ -14,13 +13,18 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Records the conference as heard on this device: the remote audio WebRTC plays out mixed with
- * the local microphone, encoded as mono AAC into an .m4a file.
+ * the local microphone, encoded as mono AAC.
+ *
+ * One encoder runs for the whole recording and its ADTS frames are split into chunk files of
+ * [AacChunks.FILE_PREFIX]NNNNN.aac, so every finished chunk is playable on its own and the chunks
+ * join back into one gapless stream (see [AacChunks.join]).
  *
  * The playout stream drives the timeline (it runs continuously while in a conference, as silence
  * when nobody talks); microphone audio is mixed into it as it arrives.
  */
 object CallAudioRecorder {
     private const val TAG = "CallAudioRecorder"
+    private const val SAMPLE_RATE = 48_000
     private const val BIT_RATE = 96_000
     private const val QUEUE_CHUNKS = 500 // 5 s of 10 ms chunks
     private const val MAX_MIC_BACKLOG_MS = 200
@@ -28,6 +32,8 @@ object CallAudioRecorder {
     /** Whether the local participant is unmuted; WebRTC keeps capturing while muted. */
     @Volatile
     var micEnabled = false
+
+    class Result(val dir: String, val chunks: Int, val durationMs: Long)
 
     private class Chunk(val samples: ShortArray, val sampleRate: Int)
 
@@ -37,10 +43,13 @@ object CallAudioRecorder {
         @Synchronized get() = session != null
 
     @Synchronized
-    fun start(path: String) {
+    fun start(dir: String, chunkSeconds: Int) {
         check(session == null) { "A recording is already in progress" }
-        File(path).parentFile?.mkdirs()
-        val s = Session(path)
+        val directory = File(dir)
+        directory.mkdirs()
+        check(directory.isDirectory) { "Could not create $dir" }
+        val framesPerChunk = maxOf(1, chunkSeconds * SAMPLE_RATE / AacChunks.SAMPLES_PER_FRAME)
+        val s = Session(directory, framesPerChunk)
         session = s
         PodiumAudioTap.setRecordListener { data, size, rate, channels ->
             if (micEnabled) s.mic.offer(Chunk(toMono(data, size, channels), rate))
@@ -51,8 +60,8 @@ object CallAudioRecorder {
         s.thread.start()
     }
 
-    /** Stops the recording and returns the file path, or null if nothing was recorded. Blocks. */
-    fun stop(): String? {
+    /** Stops the recording, or returns null if nothing was recorded. Blocks. */
+    fun stop(): Result? {
         val s = synchronized(this) {
             val current = session ?: return null
             session = null
@@ -95,47 +104,49 @@ object CallAudioRecorder {
         return out
     }
 
-    private class Session(val path: String) {
+    private class Session(val dir: File, framesPerChunk: Int) {
         val playout = ArrayBlockingQueue<Chunk>(QUEUE_CHUNKS)
         val mic = ArrayBlockingQueue<Chunk>(QUEUE_CHUNKS)
 
         @Volatile
         var running = true
-        var result: String? = null
+        var result: Result? = null
         val thread = Thread({ run() }, "CallAudioRecorder")
 
-        private var sampleRate = 0
-        private var micRing = ShortArray(0)
+        private val writer = AacChunks.Writer(dir, framesPerChunk, SAMPLE_RATE, 1)
+        private val micRing = ShortArray(SAMPLE_RATE) // 1 s
         private var micRead = 0
         private var micCount = 0
         private var codec: MediaCodec? = null
-        private var muxer: MediaMuxer? = null
-        private var track = -1
         private var framesQueued = 0L
         private val info = MediaCodec.BufferInfo()
+        private var payload = ByteArray(2048)
 
         private fun run() {
             try {
                 while (running || playout.isNotEmpty()) {
                     val chunk = playout.poll(100, TimeUnit.MILLISECONDS) ?: continue
-                    if (codec == null) open(chunk.sampleRate)
-                    val samples = resample(chunk.samples, chunk.sampleRate, sampleRate)
+                    if (codec == null) open()
+                    val samples = resample(chunk.samples, chunk.sampleRate, SAMPLE_RATE)
                     mixMic(samples)
                     encode(samples, endOfStream = false)
                 }
                 if (codec != null) encode(ShortArray(0), endOfStream = true)
-                result = finish()
             } catch (e: Exception) {
                 Log.e(TAG, "Recording failed", e)
+            } finally {
                 release()
-                File(path).delete()
+                writer.close()
+                result = if (writer.frames > 0) {
+                    Result(dir.path, writer.chunks, writer.durationMs)
+                } else {
+                    null
+                }
             }
         }
 
-        private fun open(rate: Int) {
-            sampleRate = rate
-            micRing = ShortArray(rate) // 1 s
-            val format = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, rate, 1).apply {
+        private fun open() {
+            val format = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, SAMPLE_RATE, 1).apply {
                 setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
                 setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE)
                 setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16 * 1024)
@@ -144,16 +155,15 @@ object CallAudioRecorder {
                 configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
                 start()
             }
-            muxer = MediaMuxer(path, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
         }
 
         private fun mixMic(out: ShortArray) {
             while (true) {
                 val chunk = mic.poll() ?: break
-                for (s in resample(chunk.samples, chunk.sampleRate, sampleRate)) pushMic(s)
+                for (s in resample(chunk.samples, chunk.sampleRate, SAMPLE_RATE)) pushMic(s)
             }
             // Keep the microphone close to the playout clock if the two drift apart.
-            val maxBacklog = sampleRate * MAX_MIC_BACKLOG_MS / 1000
+            val maxBacklog = SAMPLE_RATE * MAX_MIC_BACKLOG_MS / 1000
             if (micCount > maxBacklog) {
                 val drop = micCount - maxBacklog
                 micRead = (micRead + drop) % micRing.size
@@ -189,7 +199,7 @@ object CallAudioRecorder {
                     buffer.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(samples, offset, count)
                     offset += count
                     val last = endOfStream && offset == samples.size
-                    val ptsUs = framesQueued * 1_000_000L / sampleRate
+                    val ptsUs = framesQueued * 1_000_000L / SAMPLE_RATE
                     framesQueued += count
                     codec.queueInputBuffer(
                         index, 0, count * 2, ptsUs,
@@ -203,40 +213,26 @@ object CallAudioRecorder {
 
         private fun drain(waitForEnd: Boolean) {
             val codec = codec ?: return
-            val muxer = muxer ?: return
             var waits = 0
             while (true) {
                 val index = codec.dequeueOutputBuffer(info, if (waitForEnd) 10_000 else 0)
                 when {
                     index == MediaCodec.INFO_TRY_AGAIN_LATER ->
                         if (!waitForEnd || ++waits > 200) return
-                    index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-                        track = muxer.addTrack(codec.outputFormat)
-                        muxer.start()
-                    }
                     index >= 0 -> {
                         val buffer = codec.getOutputBuffer(index)!!
                         val isConfig = info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0
-                        if (!isConfig && info.size > 0 && track >= 0) {
+                        if (!isConfig && info.size > 0) {
+                            if (payload.size < info.size) payload = ByteArray(info.size)
                             buffer.position(info.offset)
-                            buffer.limit(info.offset + info.size)
-                            muxer.writeSampleData(track, buffer, info)
+                            buffer.get(payload, 0, info.size)
+                            writer.write(payload, info.size)
                         }
                         codec.releaseOutputBuffer(index, false)
                         if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
                     }
                 }
             }
-        }
-
-        private fun finish(): String? {
-            val wroteSamples = track >= 0 && framesQueued > 0
-            release()
-            if (!wroteSamples) {
-                File(path).delete()
-                return null
-            }
-            return path
         }
 
         private fun release() {
@@ -246,13 +242,6 @@ object CallAudioRecorder {
             }
             codec?.release()
             codec = null
-            try {
-                if (track >= 0) muxer?.stop()
-            } catch (e: Exception) {
-                Log.e(TAG, "Muxer stop failed", e)
-            }
-            muxer?.release()
-            muxer = null
         }
     }
 }

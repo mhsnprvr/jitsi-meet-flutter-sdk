@@ -25,3 +25,4 @@
 #import <JitsiMeetSDK/JMCallKitListener.h>
 #import <JitsiMeetSDK/JMCallKitProxy.h>
 #import <JitsiMeetSDK/PodiumStageView.h>
+#import <JitsiMeetSDK/PodiumVideoTap.h>

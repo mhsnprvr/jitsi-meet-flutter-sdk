@@ -7,6 +7,7 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     var jitsiMeetViewController: JitsiMeetViewController?
     var backgroundSession: JitsiMeetBackgroundSession?
     var eventSink: FlutterEventSink?
+    var channel: FlutterMethodChannel?
 
     var activeJitsiMeetView: JitsiMeetView? {
         backgroundSession?.jitsiMeetView ?? jitsiMeetViewController?.jitsiMeetView
@@ -20,6 +21,7 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let channel = FlutterMethodChannel(name: "jitsi_meet_flutter_sdk", binaryMessenger: registrar.messenger())
         let flutterViewController: UIViewController = (UIApplication.shared.delegate?.window??.rootViewController)!
         let instance = JitsiMeetPlugin(flutterViewController: flutterViewController)
+        instance.channel = channel
         registrar.addMethodCallDelegate(instance, channel: channel)
 
         // Read by the SDK when it creates the React Native bridge, on the first conference.
@@ -78,14 +80,35 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             return
         case "stopCallRecording":
             DispatchQueue.global(qos: .userInitiated).async {
-                let path = PodiumCallRecorder.stop()
-                DispatchQueue.main.async { result(path) }
+                let stopped = PodiumCallRecorder.stop()
+                DispatchQueue.main.async { result(stopped) }
             }
             return
         case "setCallRecordingMicEnabled":
             let arguments = call.arguments as? [String: Any]
             PodiumCallRecorder.setMicEnabled(arguments?["enabled"] as? Bool ?? false)
             result(nil)
+            return
+        case "joinAudioChunks":
+            joinAudioChunks(call, result: result)
+            return
+        case "startScreenCapture":
+            startScreenCapture(call, result: result)
+            return
+        case "stopScreenCapture":
+            DispatchQueue.global(qos: .userInitiated).async {
+                let stopped = PodiumScreenRecorder.stop()
+                DispatchQueue.main.async { result(stopped) }
+            }
+            return
+        case "encodeScreenClip":
+            encodeScreenClip(call, result: result)
+            return
+        case "freeDiskBytes":
+            let path = (call.arguments as? [String: Any])?["path"] as? String ?? NSHomeDirectory()
+            let values = try? URL(fileURLWithPath: path)
+                .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            result(values?.volumeAvailableCapacityForImportantUsage ?? -1)
             return
         default:
           result(FlutterMethodNotImplemented)
@@ -215,15 +238,71 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     }
 
     private func startCallRecording(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        guard let path = (call.arguments as? [String: Any])?["path"] as? String else {
-            result(FlutterError(code: "INVALID_ARGUMENT", message: "path is required", details: nil))
+        let arguments = call.arguments as? [String: Any]
+        guard let dir = arguments?["dir"] as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "dir is required", details: nil))
             return
         }
         do {
-            try PodiumCallRecorder.start(withPath: path)
-            result(path)
+            try PodiumCallRecorder.start(inDirectory: dir, chunkSeconds: arguments?["chunkSeconds"] as? Int ?? 5)
+            result(dir)
         } catch {
             result(FlutterError(code: "RECORDING_FAILED", message: error.localizedDescription, details: nil))
+        }
+    }
+
+    private func joinAudioChunks(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? [String: Any]
+        guard let dir = arguments?["dir"] as? String, let outPath = arguments?["outPath"] as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "dir and outPath are required", details: nil))
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async {
+            var error: NSError?
+            let durationMs = PodiumCallRecorder.joinChunks(inDirectory: dir, toPath: outPath, error: &error)
+            DispatchQueue.main.async {
+                if durationMs < 0 {
+                    result(FlutterError(code: "FAILED", message: error?.localizedDescription ?? "Could not join the audio", details: nil))
+                } else {
+                    result(durationMs)
+                }
+            }
+        }
+    }
+
+    private func startScreenCapture(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? [String: Any]
+        guard let trackId = arguments?["trackId"] as? String, let dir = arguments?["dir"] as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "trackId and dir are required", details: nil))
+            return
+        }
+        PodiumScreenRecorder.start(withPcId: arguments?["pcId"] as? Int ?? -1, trackId: trackId, directory: dir) { attached in
+            result(attached)
+        }
+    }
+
+    private func encodeScreenClip(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let arguments = call.arguments as? [String: Any]
+        guard let dir = arguments?["dir"] as? String,
+              let outPath = arguments?["outPath"] as? String,
+              let endMs = (arguments?["endMs"] as? NSNumber)?.int64Value else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "dir, outPath and endMs are required", details: nil))
+            return
+        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let clip = try PodiumScreenRecorder.encodeDirectory(dir, toPath: outPath, endMs: endMs) { done, total in
+                    guard done == total || done % 10 == 0 else { return }
+                    DispatchQueue.main.async {
+                        self?.channel?.invokeMethod("screenClipProgress", arguments: ["outPath": outPath, "done": done, "total": total])
+                    }
+                }
+                DispatchQueue.main.async { result(clip) }
+            } catch {
+                DispatchQueue.main.async {
+                    result(FlutterError(code: "FAILED", message: error.localizedDescription, details: nil))
+                }
+            }
         }
     }
 

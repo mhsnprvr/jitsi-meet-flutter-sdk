@@ -113,15 +113,41 @@ abstract class JitsiMeetPlatform extends PlatformInterface {
     throw UnimplementedError('setStage() has not been implemented.');
   }
 
-  /// Starts recording the conference audio (microphone and remote audio) to [path].
-  Future<void> startCallRecording(String path) async {
+  /// Starts recording the conference audio (microphone and remote audio) as
+  /// AAC chunks in [dir].
+  Future<void> startCallRecording(String dir, int chunkSeconds) async {
     throw UnimplementedError('startCallRecording() has not been implemented.');
   }
 
-  /// Stops the conference recording, returning the file path or null if
-  /// nothing was recorded.
-  Future<String?> stopCallRecording() async {
+  /// Stops the conference recording, returning `dir`, `chunks` and
+  /// `durationMs`, or null if nothing was recorded.
+  Future<Map<String, dynamic>?> stopCallRecording() async {
     throw UnimplementedError('stopCallRecording() has not been implemented.');
+  }
+
+  Future<int> joinAudioChunks(String dir, String outPath) async {
+    throw UnimplementedError('joinAudioChunks() has not been implemented.');
+  }
+
+  Future<bool> startScreenCapture(int pcId, String trackId, String dir) async {
+    throw UnimplementedError('startScreenCapture() has not been implemented.');
+  }
+
+  Future<Map<String, dynamic>?> stopScreenCapture() async {
+    throw UnimplementedError('stopScreenCapture() has not been implemented.');
+  }
+
+  Future<Map<String, dynamic>> encodeScreenClip(
+    String dir,
+    String outPath,
+    int endMs,
+    void Function(int done, int total)? onProgress,
+  ) async {
+    throw UnimplementedError('encodeScreenClip() has not been implemented.');
+  }
+
+  Future<int> freeDiskBytes(String path) async {
+    throw UnimplementedError('freeDiskBytes() has not been implemented.');
   }
 
   /// Whether the microphone is mixed into the conference recording.

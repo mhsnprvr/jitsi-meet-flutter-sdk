@@ -262,15 +262,87 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
   }
 
   @override
-  Future<void> startCallRecording(String path) async {
+  Future<void> startCallRecording(String dir, int chunkSeconds) async {
     await methodChannel.invokeMethod<String>('startCallRecording', {
-      'path': path,
+      'dir': dir,
+      'chunkSeconds': chunkSeconds,
     });
   }
 
   @override
-  Future<String?> stopCallRecording() async {
-    return await methodChannel.invokeMethod<String>('stopCallRecording');
+  Future<Map<String, dynamic>?> stopCallRecording() async {
+    final result = await methodChannel.invokeMethod<Map>('stopCallRecording');
+    return result == null ? null : Map<String, dynamic>.from(result);
+  }
+
+  @override
+  Future<int> joinAudioChunks(String dir, String outPath) async {
+    final durationMs = await methodChannel.invokeMethod<num>(
+      'joinAudioChunks',
+      {'dir': dir, 'outPath': outPath},
+    );
+    return durationMs!.toInt();
+  }
+
+  @override
+  Future<int> freeDiskBytes(String path) async {
+    final bytes = await methodChannel
+        .invokeMethod<num>('freeDiskBytes', {'path': path});
+    return bytes?.toInt() ?? -1;
+  }
+
+  @override
+  Future<bool> startScreenCapture(int pcId, String trackId, String dir) async {
+    final attached = await methodChannel.invokeMethod<bool>(
+      'startScreenCapture',
+      {'pcId': pcId, 'trackId': trackId, 'dir': dir},
+    );
+    return attached ?? false;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> stopScreenCapture() async {
+    final result = await methodChannel.invokeMethod<Map>('stopScreenCapture');
+    return result == null ? null : Map<String, dynamic>.from(result);
+  }
+
+  final _clipProgress = <String, void Function(int done, int total)>{};
+  bool _callHandlerSet = false;
+
+  @override
+  Future<Map<String, dynamic>> encodeScreenClip(
+    String dir,
+    String outPath,
+    int endMs,
+    void Function(int done, int total)? onProgress,
+  ) async {
+    if (onProgress != null) {
+      _ensureCallHandler();
+      _clipProgress[outPath] = onProgress;
+    }
+    try {
+      final result = await methodChannel.invokeMethod<Map>(
+        'encodeScreenClip',
+        {'dir': dir, 'outPath': outPath, 'endMs': endMs},
+      );
+      return Map<String, dynamic>.from(result!);
+    } finally {
+      _clipProgress.remove(outPath);
+    }
+  }
+
+  void _ensureCallHandler() {
+    if (_callHandlerSet) return;
+    _callHandlerSet = true;
+    methodChannel.setMethodCallHandler((call) async {
+      if (call.method != 'screenClipProgress') return;
+      final args = call.arguments;
+      if (args is! Map) return;
+      final done = args['done'];
+      final total = args['total'];
+      if (done is! num || total is! num) return;
+      _clipProgress[args['outPath']]?.call(done.toInt(), total.toInt());
+    });
   }
 
   @override
