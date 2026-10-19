@@ -10,6 +10,7 @@ Jitsi Meet Flutter SDK
   s.license          = { :file => '../LICENSE' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
+  s.frameworks = 'AudioToolbox', 'AVFoundation'
   s.dependency 'Flutter'
   s.dependency 'Giphy', '2.2.12'
   s.dependency 'JitsiWebRTC', '~> 124.0'

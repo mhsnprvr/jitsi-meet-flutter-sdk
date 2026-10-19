@@ -112,4 +112,21 @@ abstract class JitsiMeetPlatform extends PlatformInterface {
   Future<MethodResponse> setStage(Map<String, dynamic> args) async {
     throw UnimplementedError('setStage() has not been implemented.');
   }
+
+  /// Starts recording the conference audio (microphone and remote audio) to [path].
+  Future<void> startCallRecording(String path) async {
+    throw UnimplementedError('startCallRecording() has not been implemented.');
+  }
+
+  /// Stops the conference recording, returning the file path or null if
+  /// nothing was recorded.
+  Future<String?> stopCallRecording() async {
+    throw UnimplementedError('stopCallRecording() has not been implemented.');
+  }
+
+  /// Whether the microphone is mixed into the conference recording.
+  Future<void> setCallRecordingMicEnabled(bool enabled) async {
+    throw UnimplementedError(
+        'setCallRecordingMicEnabled() has not been implemented.');
+  }
 }

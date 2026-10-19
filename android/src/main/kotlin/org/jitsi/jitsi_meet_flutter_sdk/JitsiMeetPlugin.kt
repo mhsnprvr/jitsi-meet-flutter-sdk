@@ -5,6 +5,8 @@ import androidx.annotation.NonNull
 import androidx.fragment.app.FragmentActivity
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -66,6 +68,12 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "enterPiP" -> enterPiP(call, result)
       "sendPodiumCommand" -> sendPodiumCommand(call, result)
       "setStage" -> setStage(call, result)
+      "startCallRecording" -> startCallRecording(call, result)
+      "stopCallRecording" -> stopCallRecording(result)
+      "setCallRecordingMicEnabled" -> {
+        CallAudioRecorder.micEnabled = call.argument<Boolean>("enabled") ?: false
+        result.success(null)
+      }
       else -> result.notImplemented()
     }
   }
@@ -276,6 +284,27 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       trackId = call.argument<String>("trackId")
     )
     result.success("Stage updated")
+  }
+
+  private fun startCallRecording(call: MethodCall, result: Result) {
+    val path = call.argument<String>("path")
+    if (path == null) {
+      result.error("INVALID_ARGUMENT", "path is required", null)
+      return
+    }
+    try {
+      CallAudioRecorder.start(path)
+      result.success(path)
+    } catch (e: Exception) {
+      result.error("RECORDING_FAILED", e.message, null)
+    }
+  }
+
+  private fun stopCallRecording(result: Result) {
+    Thread {
+      val path = CallAudioRecorder.stop()
+      Handler(Looper.getMainLooper()).post { result.success(path) }
+    }.start()
   }
 
   private fun enterPiP(call: MethodCall, result: Result) {

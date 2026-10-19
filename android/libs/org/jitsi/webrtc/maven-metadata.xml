@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>org.jitsi</groupId>
+  <artifactId>webrtc</artifactId>
+  <versioning>
+    <release>124.0.0-podium.1</release>
+    <versions>
+      <version>124.0.0-podium.1</version>
+    </versions>
+  </versioning>
+</metadata>

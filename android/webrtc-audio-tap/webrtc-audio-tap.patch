@@ -1,0 +1,37 @@
+--- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioTrack.java
++++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioTrack.java
+@@ -104,12 +104,15 @@
+       // Fixed size in bytes of each 10ms block of audio data that we ask for
+       // using callbacks to the native WebRTC client.
+       final int sizeInBytes = byteBuffer.capacity();
++      final int sampleRate = audioTrack.getSampleRate();
++      final int channels = audioTrack.getChannelCount();
+ 
+       while (keepAlive) {
+         // Get 10ms of PCM data from the native WebRTC client. Audio data is
+         // written into the common ByteBuffer using the address that was
+         // cached at construction.
+         nativeGetPlayoutData(nativeAudioTrack, sizeInBytes);
++        PodiumAudioTap.deliverPlayout(byteBuffer, sizeInBytes, sampleRate, channels);
+         // Write data until all data has been written to the audio sink.
+         // Upon return, the buffer position will have been advanced to reflect
+         // the amount of data that was successfully written to the AudioTrack.
+--- a/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
++++ b/sdk/android/src/java/org/webrtc/audio/WebRtcAudioRecord.java
+@@ -131,6 +131,8 @@
+       doAudioRecordStateCallback(AUDIO_RECORD_START);
+ 
+       long lastTime = System.nanoTime();
++      final int sampleRate = audioRecord.getSampleRate();
++      final int channels = audioRecord.getChannelCount();
+       AudioTimestamp audioTimestamp = null;
+       if (Build.VERSION.SDK_INT >= 24) {
+         audioTimestamp = new AudioTimestamp();
+@@ -155,6 +157,7 @@
+             }
+             nativeDataIsRecorded(nativeAudioRecord, bytesRead, captureTimeNs);
+           }
++          PodiumAudioTap.deliverRecorded(byteBuffer, bytesRead, sampleRate, channels);
+           if (audioSamplesReadyCallback != null) {
+             // Copy the entire byte buffer array. The start of the byteBuffer is not necessarily
+             // at index 0.

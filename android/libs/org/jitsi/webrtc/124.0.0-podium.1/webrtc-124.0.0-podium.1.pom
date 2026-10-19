@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.jitsi</groupId>
+  <artifactId>webrtc</artifactId>
+  <version>124.0.0-podium.1</version>
+  <packaging>aar</packaging>
+  <description>org.jitsi:webrtc:124.0.0 with PodiumAudioTap</description>
+</project>

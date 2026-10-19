@@ -261,6 +261,25 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
             ));
   }
 
+  @override
+  Future<void> startCallRecording(String path) async {
+    await methodChannel.invokeMethod<String>('startCallRecording', {
+      'path': path,
+    });
+  }
+
+  @override
+  Future<String?> stopCallRecording() async {
+    return await methodChannel.invokeMethod<String>('stopCallRecording');
+  }
+
+  @override
+  Future<void> setCallRecordingMicEnabled(bool enabled) async {
+    await methodChannel.invokeMethod<void>('setCallRecordingMicEnabled', {
+      'enabled': enabled,
+    });
+  }
+
   void _initialize() {
     eventChannel.receiveBroadcastStream().listen((message) {
       final data = message['data'];

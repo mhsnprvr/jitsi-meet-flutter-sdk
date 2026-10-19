@@ -14,6 +14,9 @@ buildscript {
     }
 }
 
+// org.jitsi:webrtc with PodiumAudioTap, built by webrtc-audio-tap/build.sh into libs/.
+def podiumWebrtcVersion = '124.0.0-podium.1'
+
 rootProject.allprojects {
     repositories {
         // maven {
@@ -30,6 +33,11 @@ rootProject.allprojects {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
+    }
+    configurations.all {
+        resolutionStrategy.dependencySubstitution {
+            substitute module('org.jitsi:webrtc') using module("org.jitsi:webrtc:$podiumWebrtcVersion")
+        }
     }
 }
 
@@ -88,5 +96,6 @@ dependencies {
     // implementation ('org.jitsi.react:jitsi-meet-sdk:10.2.1') { transitive = true }
     // api: host activities implement JitsiMeetActivityInterface for runInBackground.
     api ('org.jitsi.react:jitsi-meet-sdk:+') { transitive = true }
+    api "org.jitsi:webrtc:$podiumWebrtcVersion"
 
 }

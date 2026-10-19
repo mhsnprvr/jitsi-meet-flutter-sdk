@@ -114,4 +114,25 @@ class JitsiMeet {
       'trackId': trackId,
     });
   }
+
+  /// Starts recording what this device hears of the conference, the remote
+  /// audio mixed with the local microphone, as AAC into the .m4a at [path].
+  /// The microphone is only included while enabled through
+  /// [setCallRecordingMicEnabled], since WebRTC keeps capturing while muted.
+  /// Throws a [PlatformException] if the recording can't be started.
+  Future<void> startCallRecording(String path) async {
+    await JitsiMeetPlatform.instance.startCallRecording(path);
+  }
+
+  /// Stops the conference recording, returning the file path or null if
+  /// nothing was recorded.
+  Future<String?> stopCallRecording() async {
+    return await JitsiMeetPlatform.instance.stopCallRecording();
+  }
+
+  /// Whether the microphone is mixed into the conference recording; set it to
+  /// follow the local participant's mute state.
+  Future<void> setCallRecordingMicEnabled(bool enabled) async {
+    await JitsiMeetPlatform.instance.setCallRecordingMicEnabled(enabled);
+  }
 }

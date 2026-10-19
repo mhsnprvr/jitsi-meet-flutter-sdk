@@ -22,6 +22,9 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
         let instance = JitsiMeetPlugin(flutterViewController: flutterViewController)
         registrar.addMethodCallDelegate(instance, channel: channel)
 
+        // Read by the SDK when it creates the React Native bridge, on the first conference.
+        JitsiMeet.sharedInstance().rtcAudioDevice = PodiumAudioDevice.sharedInstance()
+
         let eventChannel = FlutterEventChannel(name: "jitsi_meet_flutter_sdk_events", binaryMessenger: registrar.messenger())
         eventChannel.setStreamHandler(instance)
     }
@@ -69,6 +72,20 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             return
         case "setStage":
             setStage(call, result: result)
+            return
+        case "startCallRecording":
+            startCallRecording(call, result: result)
+            return
+        case "stopCallRecording":
+            DispatchQueue.global(qos: .userInitiated).async {
+                let path = PodiumCallRecorder.stop()
+                DispatchQueue.main.async { result(path) }
+            }
+            return
+        case "setCallRecordingMicEnabled":
+            let arguments = call.arguments as? [String: Any]
+            PodiumCallRecorder.setMicEnabled(arguments?["enabled"] as? Bool ?? false)
+            result(nil)
             return
         default:
           result(FlutterMethodNotImplemented)
@@ -195,6 +212,19 @@ public class JitsiMeetPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
             flutterView: flutterViewController.view
         )
         result("Stage updated")
+    }
+
+    private func startCallRecording(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let path = (call.arguments as? [String: Any])?["path"] as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "path is required", details: nil))
+            return
+        }
+        do {
+            try PodiumCallRecorder.start(withPath: path)
+            result(path)
+        } catch {
+            result(FlutterError(code: "RECORDING_FAILED", message: error.localizedDescription, details: nil))
+        }
     }
 
     private func openChat(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
