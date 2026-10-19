@@ -249,6 +249,18 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
     });
   }
 
+  @override
+  Future<MethodResponse> setStage(Map<String, dynamic> args) async {
+    return await methodChannel
+        .invokeMethod<String>('setStage', args)
+        .then((message) => MethodResponse(isSuccess: true, message: message))
+        .catchError((error) => MethodResponse(
+              isSuccess: false,
+              message: error.toString(),
+              error: error,
+            ));
+  }
+
   void _initialize() {
     eventChannel.receiveBroadcastStream().listen((message) {
       final data = message['data'];

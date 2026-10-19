@@ -65,6 +65,7 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "retrieveParticipantsInfo" -> retrieveParticipantsInfo(call, result)
       "enterPiP" -> enterPiP(call, result)
       "sendPodiumCommand" -> sendPodiumCommand(call, result)
+      "setStage" -> setStage(call, result)
       else -> result.notImplemented()
     }
   }
@@ -262,6 +263,19 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
     val intent = BroadcastIntentHelper.buildPodiumCommandIntent(name, payload)
     LocalBroadcastManager.getInstance(activity!!.applicationContext).sendBroadcast(intent)
     result.success("Successfully sent podium command $name")
+  }
+
+  private fun setStage(call: MethodCall, result: Result) {
+    backgroundSession?.setStage(
+      visible = call.argument<Boolean>("visible") ?: false,
+      left = call.argument<Int>("left") ?: 0,
+      top = call.argument<Int>("top") ?: 0,
+      width = call.argument<Int>("width") ?: 0,
+      height = call.argument<Int>("height") ?: 0,
+      pcId = call.argument<Int>("pcId") ?: -1,
+      trackId = call.argument<String>("trackId")
+    )
+    result.success("Stage updated")
   }
 
   private fun enterPiP(call: MethodCall, result: Result) {

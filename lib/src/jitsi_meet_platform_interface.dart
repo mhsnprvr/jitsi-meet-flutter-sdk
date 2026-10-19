@@ -107,4 +107,9 @@ abstract class JitsiMeetPlatform extends PlatformInterface {
       String name, Map<String, dynamic> data) async {
     throw UnimplementedError('sendPodiumCommand() has not been implemented.');
   }
+
+  /// Positions or hides the native screen-share stage.
+  Future<MethodResponse> setStage(Map<String, dynamic> args) async {
+    throw UnimplementedError('setStage() has not been implemented.');
+  }
 }

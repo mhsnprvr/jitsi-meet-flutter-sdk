@@ -89,4 +89,29 @@ class JitsiMeet {
       [Map<String, dynamic> data = const {}]) async {
     return await JitsiMeetPlatform.instance.sendPodiumCommand(name, data);
   }
+
+  /// Shows a remote video track (from the `screenShare` podium event) in a
+  /// native window over the app, at [left]/[top]/[width]/[height] physical
+  /// pixels relative to the Flutter view. Native views can't be drawn over by
+  /// Flutter, so hide the stage while sheets or dialogs are open.
+  /// Pass a null [trackId] to clear it. Android only for now.
+  Future<MethodResponse> setStage({
+    required bool visible,
+    int left = 0,
+    int top = 0,
+    int width = 0,
+    int height = 0,
+    int? pcId,
+    String? trackId,
+  }) async {
+    return await JitsiMeetPlatform.instance.setStage({
+      'visible': visible,
+      'left': left,
+      'top': top,
+      'width': width,
+      'height': height,
+      'pcId': pcId ?? -1,
+      'trackId': trackId,
+    });
+  }
 }
