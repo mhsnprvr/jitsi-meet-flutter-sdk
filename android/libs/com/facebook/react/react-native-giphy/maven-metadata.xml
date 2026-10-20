@@ -3,8 +3,8 @@
   <groupId>com.facebook.react</groupId>
   <artifactId>react-native-giphy</artifactId>
   <versioning>
-    <latest>4.1.0-jitsi-24620439</latest>
-    <release>4.1.0-jitsi-24620439</release>
+    <latest>4.1.0-jitsi-24620981</latest>
+    <release>4.1.0-jitsi-24620981</release>
     <versions>
       <version>4.1.0-jitsi-21184949</version>
       <version>4.1.0-jitsi-24606661</version>
@@ -25,7 +25,8 @@
       <version>4.1.0-jitsi-24620150</version>
       <version>4.1.0-jitsi-24620436</version>
       <version>4.1.0-jitsi-24620439</version>
+      <version>4.1.0-jitsi-24620981</version>
     </versions>
-    <lastUpdated>20261020130632</lastUpdated>
+    <lastUpdated>20261020143653</lastUpdated>
   </versioning>
 </metadata>
