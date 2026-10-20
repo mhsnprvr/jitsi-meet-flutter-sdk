@@ -142,6 +142,12 @@ class JitsiMeet {
     await JitsiMeetPlatform.instance.setCallRecordingMicEnabled(enabled);
   }
 
+  /// Sets the title and text of the ongoing conference notification, updating
+  /// it if it is showing. Null restores the default strings. Android only.
+  Future<void> setOngoingNotification({String? title, String? text}) async {
+    await JitsiMeetPlatform.instance.setOngoingNotification(title, text);
+  }
+
   /// Joins the audio chunks in [dir] into an .m4a at [outPath] without
   /// re-encoding, returning its duration in milliseconds. Works on the chunks
   /// of a recording cut short by a crash too.

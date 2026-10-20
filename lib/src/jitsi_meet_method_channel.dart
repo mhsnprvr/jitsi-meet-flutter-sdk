@@ -352,6 +352,15 @@ class MethodChannelJitsiMeet extends JitsiMeetPlatform {
     });
   }
 
+  @override
+  Future<void> setOngoingNotification(String? title, String? text) async {
+    if (!Platform.isAndroid) return;
+    await methodChannel.invokeMethod<void>('setOngoingNotification', {
+      'title': title,
+      'text': text,
+    });
+  }
+
   void _initialize() {
     eventChannel.receiveBroadcastStream().listen((message) {
       final data = message['data'];

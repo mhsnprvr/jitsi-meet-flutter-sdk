@@ -155,4 +155,10 @@ abstract class JitsiMeetPlatform extends PlatformInterface {
     throw UnimplementedError(
         'setCallRecordingMicEnabled() has not been implemented.');
   }
+
+  /// Sets the title and text of the ongoing conference notification.
+  Future<void> setOngoingNotification(String? title, String? text) async {
+    throw UnimplementedError(
+        'setOngoingNotification() has not been implemented.');
+  }
 }

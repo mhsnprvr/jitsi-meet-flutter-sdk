@@ -74,6 +74,13 @@ class JitsiMeetPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
         CallAudioRecorder.micEnabled = call.argument<Boolean>("enabled") ?: false
         result.success(null)
       }
+      "setOngoingNotification" -> {
+        JitsiMeetOngoingConferenceService.setNotificationContent(
+          call.argument<String>("title"),
+          call.argument<String>("text")
+        )
+        result.success(null)
+      }
       "joinAudioChunks" -> joinAudioChunks(call, result)
       "startScreenCapture" -> startScreenCapture(call, result)
       "stopScreenCapture" -> stopScreenCapture(result)
