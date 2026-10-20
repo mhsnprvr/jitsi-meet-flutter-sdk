@@ -3,8 +3,8 @@
   <groupId>com.facebook.react</groupId>
   <artifactId>react-native-performance</artifactId>
   <versioning>
-    <latest>5.1.2-jitsi-24615312</latest>
-    <release>5.1.2-jitsi-24615312</release>
+    <latest>5.1.2-jitsi-24619526</latest>
+    <release>5.1.2-jitsi-24619526</release>
     <versions>
       <version>5.1.2-jitsi-21184949</version>
       <version>5.1.2-jitsi-24606661</version>
@@ -17,7 +17,10 @@
       <version>5.1.2-jitsi-24614739</version>
       <version>5.1.2-jitsi-24615287</version>
       <version>5.1.2-jitsi-24615312</version>
+      <version>5.1.2-jitsi-24619469</version>
+      <version>5.1.2-jitsi-24619517</version>
+      <version>5.1.2-jitsi-24619526</version>
     </versions>
-    <lastUpdated>20261019225210</lastUpdated>
+    <lastUpdated>20261020103430</lastUpdated>
   </versioning>
 </metadata>
